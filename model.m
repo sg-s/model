@@ -64,12 +64,18 @@ classdef (Abstract) model < handle
 		end % end init
 
 		function m = checkBounds(m)
-			assert(~any(m.lb >= m.ub),'At least one lower bound is greater than a upper bound')
-			assert(min(((struct2mat(m.parameters) > m.lb) & (struct2mat(m.parameters) <= m.ub))),'At least one parameter out of bounds')
+			assert(~any(m.lb >= m.ub),'At least one lower bound is greater than a upper bound');
+			assert(min(((struct2mat(m.parameters) >= m.lb) & (struct2mat(m.parameters) <= m.ub))),'At least one parameter out of bounds');
 		end
 
 
 		function m = set.stimulus(m,value)
+			% make sure it's oriented correctly
+			if size(value,1) == 1 || size(value,2) == 1
+				if size(value,2)>size(value,1)
+					value = value';
+				end
+			end
 			m.stimulus = value;
 			% setting the stimulus reset the response
 			m.response = [];
@@ -91,15 +97,10 @@ classdef (Abstract) model < handle
 		end % end set stimulus
 
 
-
-
-		function [m] = evaluate(m)
-		end % end evaluate 
-
 		function [m] = manipulate(m)
 			% check if a manipualte control window is already open. otherwise, create it
 			make_gui = true;
-			if ~isempty(m.handles)
+			if isfield(m.handles,'manipulate_control')
 				if isvalid(m.handles.manipulate_control)
 					make_gui = false;
 				end
@@ -114,7 +115,7 @@ classdef (Abstract) model < handle
 				pvec = struct2mat(m.parameters);
 
 				% make sure the bounds are OK
-				checkBounds(m)
+				checkBounds(m);
 		
 				nspacing = Height/(length(f)+1);
 				for i = 1:length(f)
@@ -164,6 +165,8 @@ classdef (Abstract) model < handle
 		end
 
 		function m = plotTimeSeries(m,action)
+			% evaluate the model 
+			m.evaluate;
 			if ~isfield(m.handles,'plot_fig')
 				% this is being called for the first time
 				% create a figure
@@ -197,9 +200,46 @@ classdef (Abstract) model < handle
 					end
 				end
 			end
+		end
 
+		function m = plotR_vs_S(m,action)
+			% evaluate the model 
+			m.evaluate;
+			if ~isfield(m.handles,'plot_fig')
+				% this is being called for the first time
+				% create a figure
+				m.handles.plot_fig = figure('position',[50 250 900 740],'NumberTitle','off','IntegerHandle','off','Name','Response vs. stimulus','CloseRequestFcn',@m.quitManipulateCallback);
 
+				% make as many subplots as we have outputs 
+				nplots = length(m.variable_names);
 
+				for i = 1:nplots
+					m.handles.plot_ax(i) = autoPlot(nplots,i,true); 
+					xlabel(m.handles.plot_ax(i),'Stimulus')
+					ylabel(m.handles.plot_ax(i),m.variable_names{i})
+					hold(m.handles.plot_ax(i),'on')
+
+					% on each plot, create handles to as many plots as there are trials in the stimulus 
+					for j = 1:size(m.stimulus,2)
+						m.handles.plot_data(i).handles(j) = plot(NaN,NaN,'.');
+					end
+
+				end
+				prettyFig();
+				
+			end
+				
+			if nargin == 2
+				if strcmp(action,'update')
+					% update X and Y data for plot handles directily from the prediction
+					for i = 1:length(m.variable_names)
+						for j = 1:size(m.stimulus,2)
+							m.handles.plot_data(i).handles(j).XData = m.stimulus(:,j);
+							m.handles.plot_data(i).handles(j).YData = m.prediction.(m.variable_names{i})(:,j);
+						end
+					end
+				end
+			end
 		end
 
 		function m = sliderCallback(m,src,~)
@@ -208,9 +248,6 @@ classdef (Abstract) model < handle
 
 			% update the values shown in text 
 			m.handles.controllabel(this_param).String = [m.parameter_names{this_param} '=',mat2str(m.parameters.(m.parameter_names{this_param}))];
-
-			% evaluate the model 
-			m.evaluate;
 
 			% nudge the chosen plot function to update plots
 			plot_to_make = m.handles.choose_plot.String{(m.handles.choose_plot.Value)};
@@ -235,7 +272,7 @@ classdef (Abstract) model < handle
 					m.handles.control(this_param).Value = new_bound;
 					m.parameters.(m.parameter_names{this_param}) = new_bound;
 				end
-				checkBounds(m)
+				checkBounds(m);
 				m.handles.control(this_param).Min = new_bound;
 			elseif any(m.handles.ubcontrol == src)
 				% some upper bound being changed
@@ -247,7 +284,7 @@ classdef (Abstract) model < handle
 					m.handles.control(this_param).Value = new_bound;
 					m.parameters.(m.parameter_names{this_param}) = new_bound;
 				end
-				checkBounds(m)
+				checkBounds(m);
 				m.handles.control(this_param).Max = new_bound;
 			else
 				error('error 142')
@@ -260,6 +297,7 @@ classdef (Abstract) model < handle
 			for i = 1:length(d)
 				try
 					delete(m.handles.(d{i}))
+					m.handles = rmfield(m.handles,d{i});
 				catch
 				end
 			end
