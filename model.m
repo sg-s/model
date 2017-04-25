@@ -130,13 +130,17 @@ classdef (Abstract) model < handle
 					% hat tip: http://undocumentedmatlab.com/blog/continuous-slider-callback
 
 					thisstring = [f{i} '=',mat2str(m.parameters.(m.parameter_names{i}))];
-					m.handles.controllabel(i) = uicontrol(m.handles.manipulate_control,'Position',[10 Height-i*nspacing 50 20],'style','text','String',thisstring);
-					m.handles.lbcontrol(i) = uicontrol(m.handles.manipulate_control,'Position',[300 Height-i*nspacing+3 40 20],'style','edit','String',mat2str(m.lb(i)),'Callback',@m.resetSliderBounds);
+					m.handles.controllabel(i) = uicontrol(m.handles.manipulate_control,'Position',[140 (Height-i*nspacing +30) 100 30],'style','text','String',thisstring,'FontSize',20);
+					m.handles.lbcontrol(i) = uicontrol(m.handles.manipulate_control,'Position',[305 Height-i*nspacing+3 40 20],'style','edit','String',mat2str(m.lb(i)),'Callback',@m.resetSliderBounds);
 					m.handles.ubcontrol(i) = uicontrol(m.handles.manipulate_control,'Position',[350 Height-i*nspacing+3 40 20],'style','edit','String',mat2str(m.ub(i)),'Callback',@m.resetSliderBounds);
+
+					% add a button that allows for log variation in the sliders
+					m.handles.log_control(i) = uicontrol(m.handles.manipulate_control,'Position',[10 Height-i*nspacing+3 40 20],'style','togglebutton','String','Log');
+
 				end
 
 				% also add a pop-up menu with the different plot functions 
-				m.handles.choose_plot = uicontrol(m.handles.manipulate_control,'Position',[60 10 300 20],'style','popupmenu','String',m.plotFunctions,'Callback',@m.redrawPlotFigs);
+				m.handles.choose_plot = uicontrol(m.handles.manipulate_control,'Position',[60 10 300 40],'style','popupmenu','String',m.plotFunctions,'Callback',@m.redrawPlotFigs,'FontSize',20);
 
 			end % end if make-gui
 
@@ -153,9 +157,9 @@ classdef (Abstract) model < handle
 			% is there already a plot window? if so, nuke it
 			if isfield(m.handles,'plot_fig')
 				delete(m.handles.plot_fig)
-				rmfield(m.handles,'plot_fig');
+				m.handles = rmfield(m.handles,'plot_fig');
 				try
-					rmfield(m.handles,'plot_ax');
+					m.handles = rmfield(m.handles,'plot_ax');
 				catch
 				end
 			end
@@ -177,13 +181,25 @@ classdef (Abstract) model < handle
 
 				for i = 1:nplots - 1
 					m.handles.plot_ax(i) = autoPlot(nplots,i,true); 
+					ylabel(m.handles.plot_ax(i),m.variable_names{i})
 					hold(m.handles.plot_ax(i),'on')
+					m.handles.plot_ax(i).XLim = [min(m.time) max(m.time)];
 
 					% on each plot, create handles to as many plots as there are trials in the stimulus 
 					for j = 1:size(m.stimulus,2)
 						m.handles.plot_data(i).handles(j) = plot(NaN,NaN);
 					end
 
+				end
+
+				% now make one more for the stimulus
+				m.handles.plot_ax(nplots) = autoPlot(nplots,nplots,true); 
+				ylabel(m.handles.plot_ax(nplots),'Stimulus')
+				hold(m.handles.plot_ax(nplots),'on')
+
+				% on each plot, create handles to as many plots as there are trials in the stimulus 
+				for j = 1:size(m.stimulus,2)
+					m.handles.plot_data(nplots).handles(j) = plot(m.time,m.stimulus(:,j));
 				end
 				prettyFig();
 				
@@ -193,10 +209,15 @@ classdef (Abstract) model < handle
 				if strcmp(action,'update')
 					% update X and Y data for plot handles directily from the prediction
 					for i = 1:length(m.variable_names)
+						miny = Inf; maxy = 0;
 						for j = 1:size(m.stimulus,2)
-							m.handles.plot_data(i).handles(j).XData = m.time;
+
+							m.handles.plot_data(i).handles(j).XData = m.time(:);
 							m.handles.plot_data(i).handles(j).YData = m.prediction.(m.variable_names{i})(:,j);
+							miny = min([miny min(m.prediction.(m.variable_names{i})(:,j))]);
+							maxy = max([maxy max(m.prediction.(m.variable_names{i})(:,j))]);
 						end
+						m.handles.plot_ax(i).YLim = [miny/2 maxy*2];
 					end
 				end
 			end
@@ -244,7 +265,17 @@ classdef (Abstract) model < handle
 
 		function m = sliderCallback(m,src,~)
 			this_param = find(m.handles.control == src);
-			m.parameters.(m.parameter_names{this_param}) = src.Value;
+			if m.handles.log_control(this_param).Value == 1
+				% we're moving in log space
+				temp = src.Value; 
+				% find the fractional position
+				frac_pos = (temp-m.lb(this_param))/(m.ub(this_param)-m.lb(this_param));
+				temp = exp(log(m.ub(this_param))*frac_pos + log(m.lb(this_param))*(1-frac_pos));
+				m.parameters.(m.parameter_names{this_param}) = temp;
+
+			else
+				m.parameters.(m.parameter_names{this_param}) = src.Value;
+			end
 
 			% update the values shown in text 
 			m.handles.controllabel(this_param).String = [m.parameter_names{this_param} '=',mat2str(m.parameters.(m.parameter_names{this_param}))];
