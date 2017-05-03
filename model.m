@@ -11,6 +11,7 @@ classdef (Abstract) model < handle
 		 
 		lb
 		ub
+		default_values
 
 		variable_names
 		
@@ -22,7 +23,7 @@ classdef (Abstract) model < handle
 
 		solvers = {'ode23t','ode45','euler'};
 		solver = {'euler'};
-		live_update = false;
+		live_update = true;
 
 		parameters
 
@@ -48,13 +49,19 @@ classdef (Abstract) model < handle
 
 		function [m] = init(m)
 			for i = 1:length(m.parameter_names)
-				if m.lb(i) > 0 && m.ub(i) > 0
-					m.parameters.(m.parameter_names{i}) = sqrt(m.lb(i)*m.ub(i));
+				% if default_values are defines, use them
+				if ~isempty(m.default_values)
+					for i = 1:length(m.default_values)
+						m.parameters.(m.parameter_names{i}) = m.default_values(i);
+					end
 				else
-					m.parameters.(m.parameter_names{i}) = (m.ub(i) + m.lb(i))/2;
+					if m.lb(i) > 0 && m.ub(i) > 0
+						m.parameters.(m.parameter_names{i}) = sqrt(m.lb(i)*m.ub(i));
+					else
+						m.parameters.(m.parameter_names{i}) = (m.ub(i) + m.lb(i))/2;
+					end
 				end
 			end
-
 
 			% populate the plot functions
 			all_methods =  methods(m);
@@ -164,7 +171,7 @@ classdef (Abstract) model < handle
 				end
 			end
 
-			% create the plot window by calling the appopriate function  
+			% create the plot window by calling the appropriate function  
 			m.(plot_to_make{1});
 		end
 
@@ -185,9 +192,14 @@ classdef (Abstract) model < handle
 					hold(m.handles.plot_ax(i),'on')
 					m.handles.plot_ax(i).XLim = [min(m.time) max(m.time)];
 
-					% on each plot, create handles to as many plots as there are trials in the stimulus 
-					for j = 1:size(m.stimulus,2)
-						m.handles.plot_data(i).handles(j) = plot(NaN,NaN);
+					% on each plot, create handles to as many plots as there are trials in the stimulus, if it exists
+					if ~isempty(m.stimulus)
+						for j = 1:size(m.stimulus,2)
+							m.handles.plot_data(i).handles(j) = plot(NaN,NaN);
+						end
+					else
+						% no stimulus, just make on handle
+						m.handles.plot_data(i).handles = plot(NaN,NaN);
 					end
 
 				end
@@ -210,14 +222,24 @@ classdef (Abstract) model < handle
 					% update X and Y data for plot handles directily from the prediction
 					for i = 1:length(m.variable_names)
 						miny = Inf; maxy = 0;
-						for j = 1:size(m.stimulus,2)
+						if ~isempty(m.stimulus)
+							% some stimulus is defined
+							for j = 1:size(m.stimulus,2)
 
-							m.handles.plot_data(i).handles(j).XData = m.time(:);
-							m.handles.plot_data(i).handles(j).YData = m.prediction.(m.variable_names{i})(:,j);
-							miny = min([miny min(m.prediction.(m.variable_names{i})(:,j))]);
-							maxy = max([maxy max(m.prediction.(m.variable_names{i})(:,j))]);
+								m.handles.plot_data(i).handles(j).XData = m.time(:);
+								m.handles.plot_data(i).handles(j).YData = m.prediction.(m.variable_names{i})(:,j);
+								miny = min([miny min(m.prediction.(m.variable_names{i})(:,j))]);
+								maxy = max([maxy max(m.prediction.(m.variable_names{i})(:,j))]);
+							end
+							m.handles.plot_ax(i).YLim = [miny maxy];
+						else
+							% no stimulus defined, this may be an autonomous system
+							m.handles.plot_data(i).handles.XData = m.time(:);
+							m.handles.plot_data(i).handles.YData = m.prediction.(m.variable_names{i});
+							miny = min([miny min(m.prediction.(m.variable_names{i}))]);
+							maxy = max([maxy max(m.prediction.(m.variable_names{i}))]);
+							m.handles.plot_ax(i).YLim = [miny maxy];
 						end
-						m.handles.plot_ax(i).YLim = [miny/2 maxy*2];
 					end
 				end
 			end
