@@ -20,6 +20,8 @@ Once you write your model to inherit from `model`, you can do all sorts of crazy
 
 Here, the `lorenz` model is being manipulated, and the built-in time series view used to look at the time series of the Lorenz model. I'm changing one parameter and seeing how the Lorenz system switches between chaotic and non-chaotic states. 
 
+In this built in view, the last panel showing the stimulus is empty because we didn't define any stimulus for the Lorenz Model (it doesn't need any). 
+
 #### Define your own visualizations and manipulate those
 
 ![](./images/lorenz-butterfly.gif)
@@ -35,18 +37,16 @@ classdef yourModel < model
 	properties
 		% define parameters and bounds
 		parameter_names = {'sigma','alpha'};
-		lb = 			  [0         0     ]; % lower bounds
-		ub = 			  [100       100   ];
-		default_values =  [1          3    ];
+		lb = [0 0]; % lower bounds
+		ub = [100 100];
+		default_values = [1 3];
 		variable_names = {'x','y','z'};  % you can have as many as you want, and name them anything
 	end 
 
 	methods
-
 		function [m] = evaluate(m) % here, we use m to refer to the object (like obj in Python)
 			% define your model here
 		end 
-
 
 		function m = plotCustom(m,action)
 			% (optional) define your custom plotting function here
@@ -59,10 +59,11 @@ classdef yourModel < model
  		end
  	end
 end 
+```
 
 You can look at the included example models (like `lorenzModel.m`) for an example. 
 
-```
+
 
 ## License 
 
