@@ -52,13 +52,13 @@ classdef (Abstract) model < handle
 				% if default_values are defines, use them
 				if ~isempty(m.default_values)
 					for i = 1:length(m.default_values)
-						m.parameters.(m.parameter_names{i}) = m.default_values(i);
+						m.parameters.(strtrim(m.parameter_names{i})) = (m.default_values(i));
 					end
 				else
 					if m.lb(i) > 0 && m.ub(i) > 0
-						m.parameters.(m.parameter_names{i}) = sqrt(m.lb(i)*m.ub(i));
+						m.parameters.(strtrim(m.parameter_names{i})) = sqrt(m.lb(i)*m.ub(i));
 					else
-						m.parameters.(m.parameter_names{i}) = (m.ub(i) + m.lb(i))/2;
+						m.parameters.(strtrim(m.parameter_names{i})) = (m.ub(i) + m.lb(i))/2;
 					end
 				end
 			end
@@ -136,7 +136,7 @@ classdef (Abstract) model < handle
 					end
 					% hat tip: http://undocumentedmatlab.com/blog/continuous-slider-callback
 
-					thisstring = [f{i} '=',mat2str(m.parameters.(m.parameter_names{i}))];
+					thisstring = [f{i} '=',mat2str(m.parameters.(strtrim(m.parameter_names{i})))];
 					m.handles.controllabel(i) = uicontrol(m.handles.manipulate_control,'Position',[140 (Height-i*nspacing +30) 100 30],'style','text','String',thisstring,'FontSize',20);
 					m.handles.lbcontrol(i) = uicontrol(m.handles.manipulate_control,'Position',[305 Height-i*nspacing+3 40 20],'style','edit','String',mat2str(m.lb(i)),'Callback',@m.resetSliderBounds);
 					m.handles.ubcontrol(i) = uicontrol(m.handles.manipulate_control,'Position',[350 Height-i*nspacing+3 40 20],'style','edit','String',mat2str(m.ub(i)),'Callback',@m.resetSliderBounds);
