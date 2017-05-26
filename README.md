@@ -9,8 +9,8 @@ Elegant Mathematica-style model manipulation and fitting in MATLAB
 Once you write your model to inherit from `model`, you can do all sorts of crazy stuff with it like:
 
 1. viewing time series outputs of your model, that you can see update in real time as you vary parameters (like Mathematica's [manipulate](https://reference.wolfram.com/language/ref/Manipulate.html))
-2. You can actually view any arbitrary function acting on your model while you manipulate its parameters. `model` ships with two built in functions (time series and mapping outputs vs. inputs), but you can write whatever function you want, and `model` does all the heavy lefting for you in the background to wire up outputs and UX elements. 
-3. fit your model to data using all the fitting routines MATLAB has to offer. It's as simple as typing `model.fit()`. [WIP]
+2. You can actually view any arbitrary function acting on your model while you manipulate its parameters. `model` ships with two built in functions (time series and mapping outputs vs. inputs), but you can write whatever function you want, and `model` does all the heavy lifting for you in the background to wire up outputs and UX elements. 
+3. fit your model to data using all the fitting routines MATLAB has to offer. It's as simple as typing `model.fit()`. [WIP, see [roadmap](#roadmap) ]
 
 ## Example usage
 
