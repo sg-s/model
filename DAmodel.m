@@ -10,7 +10,8 @@ classdef DAmodel < model
 		parameter_names = {'A','B',  'C','tau_y','n_y','tau_z','n_z'};
 		lb = 			  [0    0     0   1       1     1        1];
 		ub = 			  [1e3  10    1   100     5     400      5];
-
+		default_values =  [100  5     .3  10      2     100      2]
+		live_update = true;
 		variable_names = {'R','y','z'}; 
 
 	end % end properties 

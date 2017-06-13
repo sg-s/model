@@ -7,7 +7,8 @@ classdef lorenzModel < model
 		lb = 			  [0       0        0 ];
 		ub = 			  [100    100       100];
 		default_values =  [28      10      8/3];
-		variable_names = {'x','y','z'}; 
+		variable_names = {'x','y','z'};
+		live_update = true; 
 
 	end % end properties 
 

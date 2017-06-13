@@ -12,8 +12,8 @@ classdef (Abstract) model < handle
 		lb
 		ub
 		default_values
-
 		variable_names
+		live_update
 		
 	
 
@@ -23,7 +23,6 @@ classdef (Abstract) model < handle
 
 		solvers = {'ode23t','ode45','euler'};
 		solver = {'euler'};
-		live_update = true;
 
 		parameters
 
@@ -78,13 +77,15 @@ classdef (Abstract) model < handle
 
 		function m = set.stimulus(m,value)
 			% make sure it's oriented correctly
-			if size(value,1) == 1 || size(value,2) == 1
-				if size(value,2)>size(value,1)
-					value = value';
+			if length(size(value)) == 2
+				if size(value,1) == 1 || size(value,2) == 1
+					if size(value,2)>size(value,1)
+						value = value';
+					end
 				end
 			end
 			m.stimulus = value;
-			% setting the stimulus reset the response
+			% setting the stimulus resets the response
 			m.response = [];
 		end % end set stimulus
 
@@ -137,7 +138,7 @@ classdef (Abstract) model < handle
 					% hat tip: http://undocumentedmatlab.com/blog/continuous-slider-callback
 
 					thisstring = [f{i} '=',mat2str(m.parameters.(strtrim(m.parameter_names{i})))];
-					m.handles.controllabel(i) = uicontrol(m.handles.manipulate_control,'Position',[140 (Height-i*nspacing +30) 100 30],'style','text','String',thisstring,'FontSize',20);
+					m.handles.controllabel(i) = uicontrol(m.handles.manipulate_control,'Position',[40 (Height-i*nspacing +30) 300 30],'style','text','String',thisstring,'FontSize',20);
 					m.handles.lbcontrol(i) = uicontrol(m.handles.manipulate_control,'Position',[305 Height-i*nspacing+3 40 20],'style','edit','String',mat2str(m.lb(i)),'Callback',@m.resetSliderBounds);
 					m.handles.ubcontrol(i) = uicontrol(m.handles.manipulate_control,'Position',[350 Height-i*nspacing+3 40 20],'style','edit','String',mat2str(m.ub(i)),'Callback',@m.resetSliderBounds);
 
@@ -356,6 +357,25 @@ classdef (Abstract) model < handle
 			end
 
 		end % end quitManipulateCallback 
+
+		function m = disableManipulateControls(m,~,~)
+			try
+				for i = 1:length(m.handles.control)
+					m.handles.control(i).Enable = 'off';
+				end
+			catch
+			end
+		end % end disableManipulateControls
+
+		function m = enableManipulateControls(m,~,~)
+			try
+				for i = 1:length(m.handles.control)
+					m.handles.control(i).Enable = 'on';
+				end
+			catch
+			end
+		end % end enableManipulateControls
+
 
 	end % end all methods
 end	% end classdef
