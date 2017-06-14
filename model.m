@@ -87,6 +87,13 @@ classdef (Abstract) model < handle
 			m.stimulus = value;
 			% setting the stimulus resets the response
 			m.response = [];
+
+			% run whatever is defined in the user-defined model that inherits from this
+			all_methods = methods(m);
+			if any(strcmp('setStimulus',all_methods))
+				m.setStimulus;
+			end
+
 		end % end set stimulus
 
 

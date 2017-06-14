@@ -9,10 +9,10 @@ classdef itsne < model
 
 	properties
 		% define parameters and bounds
-		parameter_names = {'perplexity','n_iter','engine'};
-		lb = 			  [3       			100     	1];
-		ub = 			  [100    			1000    	3];
-		default_values =  [30      			500      	1];
+		parameter_names = {'perplexity','n_iter','engine','slice'};
+		lb = 			  [      3       100       1        1];
+		ub = 			  [      100     1000      3        10];
+		default_values =  [      30      500       1        10];
 		live_update = false;
 		variable_names = {'x','y'}; 
 
@@ -24,9 +24,19 @@ classdef itsne < model
 
 			m.disableManipulateControls;
 
+			S = m.stimulus;
+
+			% slice
+			if length(size(S)) == 3
+				S = S(:,:,1:floor(m.parameters.slice):end);
+			elseif length(size(S)) == 2
+				S = S(:,1:floor(m.parameters.slice):end);
+			else
+				error('Unsupported stimulus dimension')
+			end
+
 			try
 				m.handles.plot_fig.Name = '--embedding--';
-				
 				drawnow
 			catch
 			end
@@ -37,15 +47,18 @@ classdef itsne < model
 
 				% if the stimulus is an image set, we need to reshape the matrix before feeding it to t-SNE
 
-				if length(size(m.stimulus)) == 2
-					R = mctsne(m.stimulus,ceil(m.parameters.n_iter),ceil(m.parameters.perplexity));
+				if length(size(S)) == 2
+					R = mctsne(S,ceil(m.parameters.n_iter),ceil(m.parameters.perplexity));
+					n = size(m.stimulus,2);
 				else
-					S = m.stimulus;
 					S = reshape(S,size(S,1)*size(S,2),size(S,3));
 					R = mctsne(S,ceil(m.parameters.n_iter),ceil(m.parameters.perplexity));
+					n = size(m.stimulus,3);
 				end
-				m.prediction.x = R(1,:);
-				m.prediction.y = R(2,:);
+				m.prediction.x = NaN(1,n);
+				m.prediction.y = NaN(1,n);
+				m.prediction.x(1:floor(m.parameters.slice):end) = R(1,:);
+				m.prediction.y(1:floor(m.parameters.slice):end) = R(2,:);
 			case 2
 				error('not coded')
 			case 3
@@ -65,9 +78,24 @@ classdef itsne < model
 		end % end evaluate 
 
 
+		function m = setStimulus(m)
+			if isempty(m.stimulus)
+				return
+			end
+			if length(size(m.stimulus)) == 3
+				n = size(m.stimulus,3);
+				m.ub(1) = floor((n-1)/(3*m.parameters.slice));
+			elseif length(size(m.stimulus)) == 2
+				n = size(m.stimulus,2);
+				m.ub(1) = floor((n-1)/(3*m.parameters.slice));
+			else 
+				error('Unsupported stimulus dimension.')
+			end
+		end % setStimulus runs AFTER stimulus is set. 
 
 
-	function m = plotTSNE(m,action)
+
+		function m = plotTSNE(m,action)
 
 			
 
