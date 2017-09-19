@@ -122,12 +122,14 @@ classdef (Abstract) model < handle
 			end
 
 			if make_gui
-				Height = 440;
-				m.handles.manipulate_control = figure('position',[1000 250 400 Height], 'Toolbar','none','Menubar','none','NumberTitle','off','IntegerHandle','off','CloseRequestFcn',@m.quitManipulateCallback,'Name',['manipulate[' class(m) ']']);
-
 				% draw for the first time
 				f = m.parameter_names;
 				pvec = struct2mat(m.parameters);
+
+				Height = 88*length(pvec);
+				m.handles.manipulate_control = figure('position',[1000 250 400 Height], 'Toolbar','none','Menubar','none','NumberTitle','off','IntegerHandle','off','CloseRequestFcn',@m.quitManipulateCallback,'Name',['manipulate[' class(m) ']']);
+
+				
 
 				% make sure the bounds are OK
 				checkBounds(m);
@@ -238,8 +240,12 @@ classdef (Abstract) model < handle
 								m.handles.plot_data(i).handles(j).YData = m.prediction.(m.variable_names{i})(:,j);
 								miny = min([miny min(m.prediction.(m.variable_names{i})(:,j))]);
 								maxy = max([maxy max(m.prediction.(m.variable_names{i})(:,j))]);
-							end
-							m.handles.plot_ax(i).YLim = [miny maxy];
+                            end
+                            try
+                                m.handles.plot_ax(i).YLim = [miny maxy];
+                            catch
+                                m.handles.plot_ax(i).YLim = [miny/2 maxy*2];
+                            end
 						else
 							% no stimulus defined, this may be an autonomous system
 							m.handles.plot_data(i).handles.XData = m.time(:);
